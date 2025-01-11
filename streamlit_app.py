@@ -2,14 +2,15 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 import cv2
+from PIL import Image
 
 # Load your pre-trained model
 model = tf.keras.models.load_model('model.h5')
 
 # Function to preprocess the frame for the model
 def preprocess_frame(frame):
-    frame_resized = cv2.resize(frame, (224, 224))  # Resize to model input size
-    frame_normalized = frame_resized / 255.0  # Normalize pixel values
+    frame_resized = cv2.resize(frame, (224, 224))  # Resize to model input size (224x224 for many CNNs)
+    frame_normalized = frame_resized / 255.0  # Normalize pixel values to [0, 1]
     return np.expand_dims(frame_normalized, axis=0)  # Add batch dimension
 
 # Function to detect drowsiness using webcam input
@@ -20,7 +21,7 @@ def detect_drowsiness():
     webcam_image = st.camera_input("Capture image from webcam")
 
     if webcam_image is not None:
-        # Convert the uploaded webcam image to an OpenCV format
+        # Convert the uploaded webcam image to an OpenCV format (RGB)
         frame = np.array(webcam_image)
 
         # Preprocess the frame for prediction
@@ -28,16 +29,19 @@ def detect_drowsiness():
 
         # Make predictions using the model
         prediction = model.predict(processed_frame)
-        drowsiness_score = prediction[0][0]  # Adjust based on your model's output
+        drowsiness_score = prediction[0][0]  # Assuming the model outputs a single value for drowsiness score
 
         # Display prediction
         label = "Drowsy" if drowsiness_score > 0.5 else "Alert"
         color = (0, 0, 255) if label == "Drowsy" else (0, 255, 0)
+
+        # Add label and score on the image
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convert back to BGR for OpenCV compatibility
         cv2.putText(frame, f"{label} ({drowsiness_score:.2f})", (10, 50),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
         # Show the processed frame
-        st.image(frame, channels="RGB", caption="Processed Webcam Feed")
+        st.image(frame, channels="BGR", caption="Processed Webcam Feed")
 
     # Allow the user to stop detection
     if st.button("Stop Detection"):
