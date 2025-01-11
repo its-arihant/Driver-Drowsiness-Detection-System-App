@@ -14,7 +14,7 @@ def preprocess_frame(frame):
 
 # Function to capture video and detect drowsiness
 def detect_drowsiness():
-    st.info("Starting webcam... Press 'Q' in the video window to stop.")
+    st.info("Starting webcam... Press 'Stop Detection' to end.")
     cap = cv2.VideoCapture(0)  # Open webcam (device 0)
     
     while cap.isOpened():
@@ -36,15 +36,15 @@ def detect_drowsiness():
         cv2.putText(frame, f"{label} ({drowsiness_score:.2f})", (10, 50),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
-        # Show the frame
-        cv2.imshow("Driver Drowsiness Detection", frame)
+        # Convert the frame to RGB and show it in Streamlit
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        st.image(frame_rgb, channels="RGB")
 
-        # Exit on pressing 'Q'
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        # Add a button to stop detection
+        if st.button("Stop Detection"):
             break
 
     cap.release()
-    cv2.destroyAllWindows()
 
 # Streamlit UI
 st.title("Driver Drowsiness Detection")
