@@ -2,12 +2,7 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 import cv2
-from pygame import mixer
 from PIL import Image
-
-# Initialize pygame mixer for alarm sound
-mixer.init()
-sound = mixer.Sound('alarm.wav')
 
 # Load the pre-trained model
 model = tf.keras.models.load_model('model.h5')
@@ -28,7 +23,7 @@ st.write("Press 'Start Detection' to begin monitoring drowsiness using your webc
 
 # Initialize the detection system
 if st.button("Start Detection"):
-    st.info("Starting webcam... Press 'q' to stop detection.")
+    st.info("Starting webcam... Press 'Stop Detection' to end.")
 
     Score = 0
     cap = cv2.VideoCapture(0)
@@ -59,26 +54,21 @@ if st.button("Start Detection"):
             prediction = model.predict(processed_eye)
 
             if prediction[0][0] > 0.30:  # Eyes closed
-                cv2.putText(frame, "Closed", (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                 Score += 1
                 if Score > 5:
-                    try:
-                        sound.play()
-                    except:
-                        pass
+                    st.warning("Drowsiness Detected! Please take a break.")
+                    st.audio("alarm.wav")  # Play alarm sound in browser
             elif prediction[0][1] > 0.90:  # Eyes open
-                cv2.putText(frame, "Open", (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                 Score -= 1
                 if Score < 0:
                     Score = 0
 
-        cv2.putText(frame, f"Score: {Score}", (100, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-
-        # Display the frame in Streamlit
+        # Display the frame and score
+        cv2.putText(frame, f"Score: {Score}", (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         st.image(frame, channels="BGR", caption="Webcam Feed")
 
-        # Exit on 'q' key press
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        # Exit when the user clicks "Stop Detection"
+        if st.button("Stop Detection"):
             break
 
     cap.release()
