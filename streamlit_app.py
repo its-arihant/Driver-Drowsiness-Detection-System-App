@@ -38,9 +38,11 @@ def detect_drowsiness():
 
         # Convert the frame to RGB and show it in Streamlit
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        st.image(frame_rgb, channels="RGB")
 
-        # Add a button to stop detection
+        # Display the webcam frame in Streamlit
+        st.image(frame_rgb, channels="RGB", use_column_width=True)
+
+        # Check if stop button is pressed
         if st.button("Stop Detection"):
             break
 
