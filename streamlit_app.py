@@ -24,29 +24,16 @@ def preprocess_eye(eye_frame):
     eye_frame_normalized = eye_frame_resized / 255.0  # Normalize pixel values to [0, 1]
     return np.expand_dims(eye_frame_normalized, axis=0)  # Add batch dimension
 
-# Function to check camera availability
-def check_camera():
-    for i in range(10):  # Check first 10 camera indices
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            cap.release()
-            return i  # Return the first available camera index
-    return -1  # Return -1 if no camera is found
-
 # Function to handle detection
 def detect_drowsiness():
-    st.info("Checking for camera availability...")
+    st.info("Attempting to access the webcam...")
+    cap = cv2.VideoCapture(0)  # Default camera index (usually 0)
     
-    # Check for camera availability
-    camera_index = check_camera()
-    if camera_index == -1:
-        st.error("No accessible camera found. Please check your device and permissions.")
+    if not cap.isOpened():
+        st.error("Failed to access the webcam. Ensure you have allowed camera permissions in your browser.")
         return
 
-    st.info(f"Using webcam at index {camera_index}")
-    cap = cv2.VideoCapture(camera_index)
     Score = 0  # Drowsiness score
-
     st.info("Starting webcam... Press 'Stop Detection' to end.")
     try:
         while True:
@@ -54,7 +41,7 @@ def detect_drowsiness():
             if not ret:
                 st.error("Failed to read frame from webcam.")
                 break
-            
+
             height, width = frame.shape[:2]
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -108,9 +95,12 @@ def detect_drowsiness():
 st.title("Driver Drowsiness Detection System")
 st.write("Detect drowsiness using your webcam. Press the button below to start.")
 
-# Instructions for permissions
 st.warning(
-    "This application requires access to your webcam. If prompted by your browser or system, please allow camera permissions."
+    """
+    This application requires access to your webcam. 
+    Please allow camera permissions in your browser when prompted.
+    If you have blocked the camera, go to your browser settings to enable it.
+    """
 )
 
 if st.button("Start Detection"):
