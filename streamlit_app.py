@@ -2,14 +2,10 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 import cv2
-from pygame import mixer
+from playsound import playsound  # Use playsound for audio playback
 
 # Load your pre-trained model
 model = tf.keras.models.load_model('model.h5')
-
-# Initialize pygame mixer for alarm sound
-mixer.init()
-sound = mixer.Sound('alarm.wav')
 
 # Haar cascade files for face and eye detection
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -94,9 +90,9 @@ def monitor_drowsiness():
                 Score += 1
                 if Score > 5:
                     try:
-                        sound.play()
-                    except:
-                        pass
+                        playsound('alarm.wav')  # Use playsound for audio
+                    except Exception as e:
+                        print(f"Error playing sound: {e}")
 
             elif prediction[0][1] > 0.90:
                 cv2.putText(frame, 'Open', (10, height - 20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
