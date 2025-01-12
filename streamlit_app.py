@@ -2,9 +2,18 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 import cv2
+from pygame import mixer
 
 # Load your pre-trained model
 model = tf.keras.models.load_model('model.h5')
+
+# Initialize pygame mixer for alarm sound
+mixer.init()
+sound = mixer.Sound('alarm.wav')
+
+# Haar cascade files for face and eye detection
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
 
 # Function to preprocess the frame for the model
 def preprocess_frame(frame):
@@ -45,9 +54,74 @@ def detect_drowsiness():
     if st.button("Stop Detection"):
         st.write("Detection Stopped")
 
+
+# Additional code for face and eye detection with sound alert
+def monitor_drowsiness():
+    cap = cv2.VideoCapture(0)
+    Score = 0
+
+    while True:
+        ret, frame = cap.read()
+        height, width = frame.shape[0:2]
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Detect faces and eyes
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=3)
+        eyes = eye_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=1)
+
+        # Draw background for score display
+        cv2.rectangle(frame, (0, height - 50), (200, height), (0, 0, 0), thickness=cv2.FILLED)
+
+        for (x, y, w, h) in faces:
+            cv2.rectangle(frame, pt1=(x, y), pt2=(x + w, y + h), color=(255, 0, 0), thickness=3)
+
+        for (ex, ey, ew, eh) in eyes:
+            cv2.rectangle(frame, pt1=(ex, ey), pt2=(ex + ew, ey + eh), color=(255, 0, 0), thickness=3)
+
+            # Preprocess eye region
+            eye = frame[ey:ey + eh, ex:ex + ew]
+            eye = cv2.resize(eye, (80, 80)) / 255  # Resize and normalize
+            eye = np.expand_dims(eye, axis=0)  # Add batch dimension
+
+            # Model prediction
+            prediction = model.predict(eye)
+
+            if prediction[0][0] > 0.30:
+                cv2.putText(frame, 'Closed', (10, height - 20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                            fontScale=1, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+                cv2.putText(frame, f'Score {Score}', (100, height - 20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                            fontScale=1, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+                Score += 1
+                if Score > 5:
+                    try:
+                        sound.play()
+                    except:
+                        pass
+
+            elif prediction[0][1] > 0.90:
+                cv2.putText(frame, 'Open', (10, height - 20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                            fontScale=1, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+                cv2.putText(frame, f'Score {Score}', (100, height - 20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                            fontScale=1, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+                Score = max(0, Score - 1)
+
+        # Display the frame with annotations
+        cv2.imshow('Drowsiness Detection', frame)
+
+        # Stop detection when 'q' is pressed
+        if cv2.waitKey(33) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
 # Streamlit UI
 st.title("Driver Drowsiness Detection")
 st.write("Press the button below to start detecting drowsiness using your webcam.")
 
 if st.button("Start Detection"):
     detect_drowsiness()
+
+if st.button("Start Drowsiness Monitoring"):
+    monitor_drowsiness()
