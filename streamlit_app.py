@@ -2,7 +2,7 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 import cv2
-from playsound import playsound  # Use playsound for audio playback
+
 
 # Load your pre-trained model
 model = tf.keras.models.load_model('model.h5')
@@ -88,11 +88,8 @@ def monitor_drowsiness():
                 cv2.putText(frame, f'Score {Score}', (100, height - 20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
                             fontScale=1, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
                 Score += 1
-                if Score > 5:
-                    try:
-                        playsound('alarm.wav')  # Use playsound for audio
-                    except Exception as e:
-                        print(f"Error playing sound: {e}")
+                
+                
 
             elif prediction[0][1] > 0.90:
                 cv2.putText(frame, 'Open', (10, height - 20), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
