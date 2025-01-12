@@ -3,17 +3,6 @@ import tensorflow as tf
 import numpy as np
 import cv2
 from pygame import mixer
-from tkinter import messagebox, Tk
-
-# Function to ask for camera permission
-def ask_camera_permission():
-    root = Tk()
-    root.withdraw()  # Hide the root window
-    messagebox.showinfo(
-        "Camera Permission Required",
-        "This application needs access to your webcam. Please ensure camera permissions are granted."
-    )
-    root.destroy()
 
 # Initialize pygame mixer for alarm sound
 try:
@@ -46,8 +35,8 @@ def check_camera():
 
 # Function to handle detection
 def detect_drowsiness():
-    ask_camera_permission()  # Ask for camera permission
-
+    st.info("Checking for camera availability...")
+    
     # Check for camera availability
     camera_index = check_camera()
     if camera_index == -1:
@@ -119,8 +108,9 @@ def detect_drowsiness():
 st.title("Driver Drowsiness Detection System")
 st.write("Detect drowsiness using your webcam. Press the button below to start.")
 
+# Instructions for permissions
 st.warning(
-    "Please ensure your browser or system has granted camera access. If prompted, click 'Allow' to enable the webcam."
+    "This application requires access to your webcam. If prompted by your browser or system, please allow camera permissions."
 )
 
 if st.button("Start Detection"):
