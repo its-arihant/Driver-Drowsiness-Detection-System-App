@@ -3,6 +3,17 @@ import tensorflow as tf
 import numpy as np
 import cv2
 from pygame import mixer
+from tkinter import messagebox, Tk
+
+# Function to ask for camera permission
+def ask_camera_permission():
+    root = Tk()
+    root.withdraw()  # Hide the root window
+    messagebox.showinfo(
+        "Camera Permission Required",
+        "This application needs access to your webcam. Please ensure camera permissions are granted."
+    )
+    root.destroy()
 
 # Initialize pygame mixer for alarm sound
 try:
@@ -24,22 +35,30 @@ def preprocess_eye(eye_frame):
     eye_frame_normalized = eye_frame_resized / 255.0  # Normalize pixel values to [0, 1]
     return np.expand_dims(eye_frame_normalized, axis=0)  # Add batch dimension
 
-# Function to handle detection
-def detect_drowsiness():
-    st.info("Starting webcam... Press 'Stop Detection' to end.")
-    
-    # Attempt to access the webcam dynamically
-    cap = None
-    for i in range(5):  # Try the first 5 indices
+# Function to check camera availability
+def check_camera():
+    for i in range(10):  # Check first 10 camera indices
         cap = cv2.VideoCapture(i)
         if cap.isOpened():
-            st.info(f"Webcam found at index {i}")
-            break
-    else:
-        st.error("Failed to access the webcam. Please check your device and permissions.")
+            cap.release()
+            return i  # Return the first available camera index
+    return -1  # Return -1 if no camera is found
+
+# Function to handle detection
+def detect_drowsiness():
+    ask_camera_permission()  # Ask for camera permission
+
+    # Check for camera availability
+    camera_index = check_camera()
+    if camera_index == -1:
+        st.error("No accessible camera found. Please check your device and permissions.")
         return
-    
+
+    st.info(f"Using webcam at index {camera_index}")
+    cap = cv2.VideoCapture(camera_index)
     Score = 0  # Drowsiness score
+
+    st.info("Starting webcam... Press 'Stop Detection' to end.")
     try:
         while True:
             ret, frame = cap.read()
@@ -49,22 +68,22 @@ def detect_drowsiness():
             
             height, width = frame.shape[:2]
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            
+
             # Detect faces and eyes
             faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=3)
             eyes = eye_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=1)
-            
+
             for (x, y, w, h) in faces:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 3)
-            
+
             for (ex, ey, ew, eh) in eyes:
                 cv2.rectangle(frame, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 2)
-                
+
                 # Extract and preprocess eye region
                 eye = frame[ey:ey + eh, ex:ex + ew]
                 processed_eye = preprocess_eye(eye)
                 prediction = model.predict(processed_eye)
-                
+
                 # If eyes are closed
                 if prediction[0][0] > 0.30:
                     Score += 1
@@ -80,18 +99,17 @@ def detect_drowsiness():
                     Score = max(0, Score - 1)  # Prevent Score from going negative
                     label = "Open"
                     color = (0, 255, 0)
-                
+
                 # Display the label
                 cv2.putText(frame, f"{label} - Score: {Score}", (10, height - 20),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-            
+
             # Display frame in Streamlit
             st.image(frame, channels="BGR", caption="Driver Drowsiness Detection")
-            
+
             # Stop detection if the button is pressed
             if st.button("Stop Detection"):
                 break
-    
     finally:
         cap.release()
         cv2.destroyAllWindows()
@@ -100,6 +118,10 @@ def detect_drowsiness():
 # Streamlit UI
 st.title("Driver Drowsiness Detection System")
 st.write("Detect drowsiness using your webcam. Press the button below to start.")
+
+st.warning(
+    "Please ensure your browser or system has granted camera access. If prompted, click 'Allow' to enable the webcam."
+)
 
 if st.button("Start Detection"):
     detect_drowsiness()
